@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+BINDIR=/usr/local/bin
+ASKPASS=bin/ssh-askpass
+YUBIMON=bin/yubimon
+
+CHECKDEPS=1
+
+which brew &>/dev/null
+if [ 0 -lt $? ]; then
+    echo -e "  \e[31m** brew command not found."
+    echo -e "  ** We strongly recommend that you use Homebrew (http://brew.sh) to manage dependencies.\e[0m"
+
+    read -r -n 1 -p "Continue anyway? [y/N] " RESPONSE
+    case $RESPONSE in
+        [yY]) 
+            CHECKDEPS=0
+            ;;
+        *)
+            echo -e "\n\nExiting."
+            exit 1
+            ;;
+    esac
+fi
+
+if [ $CHECKDEPS ]; then
+    echo "* Checking dependencies..."
+
+    brew cask list xquartz &>/dev/null
+    if [ 0 -lt $? ]; then
+        echo -e "\e[31m"
+        read -r -n 1 -p "  ** XQuartz not found.  Install via homebrew? [y/N] " RESPONSE
+        echo -e "\e[0m"
+
+        case $RESPONSE in
+            [yY])
+                echo -e "\e[32m\n\nInstalling XQuartz...\e[0m"
+                brew cask install xquartz
+                echo
+                ;;
+            *)
+                echo -e "\e[31m\n\nXQuartz required for yubimon.\e[0m"
+                echo -e "\n\nExiting."
+                ;;
+        esac
+    else
+        echo -e "  \e[32m** XQuartz found\e[0m"
+    fi
+
+    echo
+
+    which ssh-askpass &>/dev/null
+    if [ 0 -lt $? ]; then
+        echo -e "  \e[32m** Installing ssh-askpass\e[0m"
+        sudo cp $ASKPASS $BINDIR
+    else
+        echo -e "  \e[32m** ssh-askpass found\e[0m"
+    fi
+
+    echo
+
+    if [ ! -e /usr/X11R6/bin/ssh-askpass ]; then
+        echo -e "  \e[32m** Symlinking ssh-askpass...\e[0m"
+        sudo ln -s /usr/local/bin/ssh-askpass /usr/X11R6/bin/ssh-askpass
+    else
+        echo -e "  \e[32m** ssh-askpass symlink found\e[0m"
+    fi
+fi
+
+echo
+
+if [ ! -e $YUBIMON ]; then
+    echo "* Building yubimon..."
+    make
+    echo
+fi
+
+echo "* Installing yubimon..."
+install -m 755 $YUBIMON $BINDIR/yubimon
+install conf/com.oracle.pic.yubimon.plist ~/Library/LaunchAgents
+launchctl load ~/Library/LaunchAgents/com.oracle.pic.yubimon.plist
+
+echo
+
+echo -e "\e[32m* All done!  Enjoy.\e[0m"
+
