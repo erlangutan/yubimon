@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+function echored () {
+    echo -e "\e[31m$*\e[0m"
+}
+
+function echogreen () {
+    echo -e "\e[32m$*\e[0m"
+}
+
 BINDIR=/usr/local/bin
 ASKPASS=bin/ssh-askpass
 YUBIMON=bin/yubimon
@@ -8,8 +16,8 @@ CHECKDEPS=1
 
 which brew &>/dev/null
 if [ 0 -lt $? ]; then
-    echo -e "  \e[31m** brew command not found."
-    echo -e "  ** We strongly recommend that you use Homebrew (http://brew.sh) to manage dependencies.\e[0m"
+    echored "  ** brew command not found."
+    echored "  ** We strongly recommend that you use Homebrew (http://brew.sh) to manage dependencies."
 
     read -r -n 1 -p "Continue anyway? [y/N] " RESPONSE
     case $RESPONSE in
@@ -34,36 +42,36 @@ if [ $CHECKDEPS ]; then
 
         case $RESPONSE in
             [yY])
-                echo -e "\e[32m\n\nInstalling XQuartz...\e[0m"
+                echogreen "\n\nInstalling XQuartz..."
                 brew cask install xquartz
                 echo
                 ;;
             *)
-                echo -e "\e[31m\n\nXQuartz required for yubimon.\e[0m"
+                echored "\n\nXQuartz required for yubimon."
                 echo -e "\n\nExiting."
                 ;;
         esac
     else
-        echo -e "  \e[32m** XQuartz found\e[0m"
+        echogreen "  ** XQuartz found"
     fi
 
     echo
 
     which ssh-askpass &>/dev/null
     if [ 0 -lt $? ]; then
-        echo -e "  \e[32m** Installing ssh-askpass\e[0m"
+        echogreen "  ** Installing ssh-askpass"
         sudo cp $ASKPASS $BINDIR
     else
-        echo -e "  \e[32m** ssh-askpass found\e[0m"
+        echogreen "  ** ssh-askpass found"
     fi
 
     echo
 
     if [ ! -e /usr/X11R6/bin/ssh-askpass ]; then
-        echo -e "  \e[32m** Symlinking ssh-askpass...\e[0m"
+        echogreen "  ** Symlinking ssh-askpass..."
         sudo ln -s /usr/local/bin/ssh-askpass /usr/X11R6/bin/ssh-askpass
     else
-        echo -e "  \e[32m** ssh-askpass symlink found\e[0m"
+        echogreen "  ** ssh-askpass symlink found"
     fi
 fi
 
@@ -77,10 +85,10 @@ fi
 
 echo "* Installing yubimon..."
 install -m 755 $YUBIMON $BINDIR/yubimon
-install conf/com.oracle.pic.yubimon.plist ~/Library/LaunchAgents
-launchctl load ~/Library/LaunchAgents/com.oracle.pic.yubimon.plist
+install conf/com.erlangutan.yubimon.plist ~/Library/LaunchAgents
+launchctl load ~/Library/LaunchAgents/com.erlangutan.yubimon.plist
 
 echo
 
-echo -e "\e[32m* All done!  Enjoy.\e[0m"
+echogreen "* All done!  Enjoy."
 
