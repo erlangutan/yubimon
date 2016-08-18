@@ -8,7 +8,6 @@ function echogreen () {
     echo -e "\e[32m$*\e[0m"
 }
 
-BINDIR=/usr/local/bin
 YUBIMON=bin/yubimon
 
 CHECKDEPS=1
@@ -32,6 +31,29 @@ fi
 
 if [ $CHECKDEPS ]; then
     echo "* Checking dependencies..."
+
+    xcode-select -p &>/dev/null
+    if [ 0 -ne $? ]; then
+        echo -e "\e[31m"
+        read -r -n 1 -p "  ** Command Line Tools not found.  Install? [y/N] " RESPONSE
+        echo -e "\e[0m"
+
+        case $RESPONSE in
+            [yY])
+                echogreen "\n\nInstalling Command Line Tools..."
+                xcode-select --install
+                echo
+                ;;
+            *)
+                echored "\n\nCommand Line Tools required for yubimon."
+                echo -e "\n\nExiting."
+                ;;
+        esac
+    else
+        echogreen "  ** Command Line Tools found"
+    fi
+
+    echo
 
     brew cask list xquartz &>/dev/null
     if [ 0 -lt $? ]; then
@@ -68,6 +90,7 @@ if [ $CHECKDEPS ]; then
                 TMPFILE=`mktemp`
                 curl https://raw.githubusercontent.com/markcarver/mac-ssh-askpass/master/ssh-askpass > $TMPFILE
                 sudo mv $TMPFILE /usr/local/bin/ssh-askpass
+                sudo chmod 755 /usr/local/bin/ssh-askpass
                 ;;
             *)
                 echored "\n\nssh-askpass required for yubimon."
@@ -97,7 +120,7 @@ if [ ! -e $YUBIMON ]; then
 fi
 
 echo "* Installing yubimon..."
-install -m 755 $YUBIMON $BINDIR/yubimon
+install -m 755 $YUBIMON /usr/local/bin/yubimon
 install conf/com.erlangutan.yubimon.plist ~/Library/LaunchAgents
 launchctl load ~/Library/LaunchAgents/com.erlangutan.yubimon.plist
 

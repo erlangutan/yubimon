@@ -1,6 +1,7 @@
 # yubimon
 
-yubimon is a set of tools for working with the
+yubimon is a simple daemon used to pop up a dialog box and prompt
+for the SSH passphase when using a
 [Yubikey4](https://www.yubico.com/products/yubikey-hardware/yubikey4/) USB
 fob on Mac OS X.  Specifically, it will prompt the user for their
 Yubikey PIN upon insertion of the fob, and add the hardware SSH key
@@ -11,7 +12,12 @@ removed.
 
 yubimon relies on a few other tools to do its job.  If
 [Homebrew](http://brew.sh) is available, yubimon can walk the user
-through the installation of these dependencies.
+through the installation of these dependencies.  Otherwise, read
+on for information about yubimon's dependencies.
+
+### Command Line Tools
+
+yubimon is written in C, so needs a compiler and related fun things.
 
 ### XQuartz
 

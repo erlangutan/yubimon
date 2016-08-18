@@ -10,19 +10,24 @@ int YUBIMON_RUNNING = 1;
 static int LIBUSB_CALL
 hotplug_callback_attach(libusb_context *ctx, libusb_device *dev, libusb_hotplug_event event, void *data) {
     int rc = -1;
-    struct libusb_device_descriptor desc;
 
-    if (LIBUSB_SUCCESS != (rc = libusb_get_device_descriptor(dev, &desc))) {
-        syslog(LOG_ERR, "Cannot get usb device descriptor: %s", libusb_error_name(rc));
-        return EXIT_FAILURE;
+    for (int tries = 10; 0 < tries; --tries) {
+        rc = pclose(popen("ssh-add -s /Library/OpenSC/lib/opensc-pkcs11.so", "r"));
+        if (LIBUSB_SUCCESS == rc) {
+            syslog(LOG_NOTICE, "Yubikey attached, ssh key loaded");
+            break;
+        } else {
+            syslog(LOG_WARNING, "Yubikey attached, ssh key not loaded - PIN failure");
+        }
     }
 
-    return pclose(popen("ssh-add -s /Library/OpenSC/lib/opensc-pkcs11.so", "r"));
+    return rc;
 }
 
 static int LIBUSB_CALL
 hotplug_callback_detach(libusb_context *ctx, libusb_device *dev, libusb_hotplug_event event, void *data)
 {
+    syslog(LOG_NOTICE, "Yubikey detached, ssh key unloaded");
     return pclose(popen("ssh-add -e /Library/OpenSC/lib/opensc-pkcs11.so", "r"));
 }
 
@@ -31,8 +36,8 @@ handle_sigterm(int signal) {
     YUBIMON_RUNNING = 0;
 }
 
-int main(int argc, char *argv[])
-{
+int
+main(int argc, char *argv[]) {
     libusb_hotplug_callback_handle hp[2];
     int product_id, vendor_id, class_id;
     int rc = -1;
@@ -57,6 +62,8 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
+    syslog(LOG_NOTICE, "registering callbacks");
+
     if (LIBUSB_SUCCESS != (rc = libusb_hotplug_register_callback(NULL,
                                                                  LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED,
                                                                  0,
@@ -71,6 +78,8 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
+    syslog(LOG_NOTICE, "yubimon attach callback registered");
+
     if (LIBUSB_SUCCESS != (rc = libusb_hotplug_register_callback(NULL,
                                                                  LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT,
                                                                  0,
@@ -84,6 +93,8 @@ int main(int argc, char *argv[])
         libusb_exit(NULL);
         return EXIT_FAILURE;
     }
+
+    syslog(LOG_NOTICE, "yubimon detach callback registered");
 
     while (YUBIMON_RUNNING) {
         if (0 > (rc = libusb_handle_events(NULL))) {
