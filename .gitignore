@@ -36,3 +36,5 @@
 *.su
 
 bin/yubimon
+
+.*swp
