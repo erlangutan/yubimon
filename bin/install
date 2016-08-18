@@ -9,7 +9,6 @@ function echogreen () {
 }
 
 BINDIR=/usr/local/bin
-ASKPASS=bin/ssh-askpass
 YUBIMON=bin/yubimon
 
 CHECKDEPS=1
@@ -59,8 +58,22 @@ if [ $CHECKDEPS ]; then
 
     which ssh-askpass &>/dev/null
     if [ 0 -lt $? ]; then
-        echogreen "  ** Installing ssh-askpass"
-        sudo cp $ASKPASS $BINDIR
+        echo -e "\e[31m"
+        read -r -n 1 -p "  ** ssh-askpass not found.  Install from GitHub? [y/N] " RESPONSE
+        echo -e "\e[0m"
+
+        case $RESPONSE in
+            [yY])
+                echogreen "\n\nInstalling ssh-askpass..."
+                TMPFILE=`mktemp`
+                curl https://raw.githubusercontent.com/markcarver/mac-ssh-askpass/master/ssh-askpass > $TMPFILE
+                sudo mv $TMPFILE /usr/local/bin/ssh-askpass
+                ;;
+            *)
+                echored "\n\nssh-askpass required for yubimon."
+                echo -e "\n\nExiting."
+                ;;
+        esac
     else
         echogreen "  ** ssh-askpass found"
     fi

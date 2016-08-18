@@ -8,7 +8,7 @@
 int YUBIMON_RUNNING = 1;
 
 static int LIBUSB_CALL
-hotplug_callback_attach(usb_ctx *ctx, usb_dev *dev, usb_event event, void *data) {
+hotplug_callback_attach(libusb_context *ctx, libusb_device *dev, libusb_hotplug_event event, void *data) {
     int rc = -1;
     struct libusb_device_descriptor desc;
 
@@ -21,7 +21,7 @@ hotplug_callback_attach(usb_ctx *ctx, usb_dev *dev, usb_event event, void *data)
 }
 
 static int LIBUSB_CALL
-hotplug_callback_detach(usb_ctx *ctx, usb_dev *dev, usb_event event, void *data)
+hotplug_callback_detach(libusb_context *ctx, libusb_device *dev, libusb_hotplug_event event, void *data)
 {
     return pclose(popen("ssh-add -e /Library/OpenSC/lib/opensc-pkcs11.so", "r"));
 }
