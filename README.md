@@ -13,6 +13,17 @@ yubimon relies on a few other tools to do its job.  If
 [Homebrew](http://brew.sh) is available, yubimon can walk the user
 through the installation of these dependencies.
 
+### XQuartz
+
+SSH uses a program called `ssh-askpass` to graphically prompt the
+user for uheir key passphrase.  This program is only run by `ssh-add`
+in the event that an X11 environment exists on the host.
+
+### ssh-askpass
+
+yubimon uses an alternative ssh-askpass script written by [Mark
+Carver](https://github.com/markcarver).
+
 ## Installation
 
 ```
