@@ -1,3 +1,28 @@
+/*
+ * The MIT License (MIT) Copyright (c) 2016 Cyrus Durgin
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify,
+ * merge, publish, distribute, sublicense, and/or sell copies of the
+ * Software, and to permit persons to whom the Software is furnished
+ * to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+ * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -5,29 +30,35 @@
 
 #include "libusb.h"
 
+INT PIN_ATTEMPTS    = 10;
 int YUBIMON_RUNNING = 1;
 
-static int LIBUSB_CALL
-hotplug_callback_attach(libusb_context *ctx, libusb_device *dev, libusb_hotplug_event event, void *data) {
+static int 
+hotplug_callback_attach(libusb_context *ctx, libusb_device *dev, libusb_hotplug_event ev, void *data) {
     int rc = -1;
 
-    for (int tries = 10; 0 < tries; --tries) {
+    for (int tries = PIN_ATTEMPTS; 0 < tries; --tries) {
         rc = pclose(popen("ssh-add -s /Library/OpenSC/lib/opensc-pkcs11.so", "r"));
         if (LIBUSB_SUCCESS == rc) {
-            syslog(LOG_NOTICE, "Yubikey attached, ssh key loaded");
+            syslog(LOG_NOTICE, "Yubikey attached, SSH key loaded");
             break;
         } else {
-            syslog(LOG_WARNING, "Yubikey attached, ssh key not loaded - PIN failure");
+            syslog(LOG_WARNING, "Yubikey attached, SSH key not loaded - PIN failure");
         }
+    }
+
+    if (LIBUSB_SUCCESS != rc) {
+        syslog(LOG_WARNING, "Could not load SSH key after %d attempts, remove/insert Yubikey to try again",
+               PIN_ATTEMPTS);
     }
 
     return rc;
 }
 
-static int LIBUSB_CALL
-hotplug_callback_detach(libusb_context *ctx, libusb_device *dev, libusb_hotplug_event event, void *data)
+static int 
+hotplug_callback_detach(libusb_context *ctx, libusb_device *dev, libusb_hotplug_event ev, void *data)
 {
-    syslog(LOG_NOTICE, "Yubikey detached, ssh key unloaded");
+    syslog(LOG_NOTICE, "Yubikey detached, SSH key unloaded");
     return pclose(popen("ssh-add -e /Library/OpenSC/lib/opensc-pkcs11.so", "r"));
 }
 
@@ -39,7 +70,9 @@ handle_sigterm(int signal) {
 int
 main(int argc, char *argv[]) {
     libusb_hotplug_callback_handle hp[2];
-    int product_id, vendor_id, class_id;
+    int product_id;
+    int vendor_id;
+    int class_id;
     int rc = -1;
 
     // matches Yubikey4 vendor and product id
